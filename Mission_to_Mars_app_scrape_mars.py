@@ -6,42 +6,40 @@ import time
 import re
 
 
-def scrape_all():
+def scrape_everything():
 
-    # Initiate headless driver for deployment
+    # Initiate headless driver
     browser = Browser("chrome", executable_path="chromedriver", headless=True)
     news_title, news_paragraph = mars_news(browser)
 
     # Run all scraping functions and store in dictionary.
     data = {
-        "news_title": news_title,
-        "news_paragraph": news_paragraph,
-        "featured_image": featured_image(browser),
-        "hemispheres": hemispheres(browser),
-        "weather": twitter_weather(browser),
-        "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "News_Title": news_title,
+        "News_Paragraph": news_paragraph,
+        "Featured_Image": featured_image(browser),
+        "Hemispheres": hemispheres(browser),
+        "Weather": twitter_weather(browser),
+        "Facts": mars_facts(),
+        "Last_Modified": dt.datetime.now()
     }
 
-    # Stop webdriver and return data
+    # quit and then return data
     browser.quit()
     return data
 
-
-def mars_news(browser):
+def news_about_mars(browser):
     url = "https://mars.nasa.gov/news/"
     browser.visit(url)
 
-    # Get first list item and wait half a second if not immediately present
     browser.is_element_present_by_css("ul.item_list li.slide", wait_time=0.5)
 
     html = browser.html
     news_soup = BeautifulSoup(html, "html.parser")
 
     try:
-        slide_elem = news_soup.select_one("ul.item_list li.slide")
-        news_title = slide_elem.find("div", class_="content_title").get_text()
-        news_p = slide_elem.find(
+        slide_element = news_soup.select_one("ul.item_list li.slide")
+        news_title = slide_element.find("div", class_="content_title").get_text()
+        news_p = slide_element.find(
             "div", class_="article_teaser_body").get_text()
 
     except AttributeError:
@@ -50,20 +48,20 @@ def mars_news(browser):
     return news_title, news_p
 
 
-def featured_image(browser):
+def image_featured(browser):
     url = "https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars"
     browser.visit(url)
 
-    # Find and click the full image button
-    full_image_elem = browser.find_by_id("full_image")
-    full_image_elem.click()
+    # Find image button
+    full_image_element = browser.find_by_id("full_image")
+    full_image_element.click()
 
-    # Find the more info button and click that
+    # Find info button and click
     browser.is_element_present_by_text("more info", wait_time=0.5)
-    more_info_elem = browser.links.find_by_partial_text("more info")
-    more_info_elem.click()
+    more_info_element = browser.links.find_by_partial_text("more info")
+    more_info_element.click()
 
-    # Parse the resulting html with soup
+    # Parse
     html = browser.html
     img_soup = BeautifulSoup(html, "html.parser")
 
@@ -76,15 +74,15 @@ def featured_image(browser):
     except AttributeError:
         return None
 
-    # Use the base url to create an absolute url
+    # create an absolute url
     img_url = f"https://www.jpl.nasa.gov{img_url_rel}"
 
     return img_url
 
 
-def hemispheres(browser):
+def hemispheres_for_web(browser):
 
-    # A way to break up long strings
+    # break long strings
     url = (
         "https://astrogeology.usgs.gov/search/"
         "results?q=hemisphere+enhanced&k1=target&v1=Mars"
@@ -92,17 +90,17 @@ def hemispheres(browser):
 
     browser.visit(url)
 
-    # Click the link, find the sample anchor, return the href
+    # return the href
     hemisphere_image_urls = []
     for i in range(4):
 
-        # Find the elements on each loop to avoid a stale element exception
+        # loop and avoid element exception
         browser.find_by_css("a.product-item h3")[i].click()
 
-        hemi_data = scrape_hemisphere(browser.html)
+        hemisphere_data = scrape_hemisphere(browser.html)
 
         # Append hemisphere object to list
-        hemisphere_image_urls.append(hemi_data)
+        hemisphere_image_urls.append(hemisphere_data)
 
         # Finally, we navigate backwards
         browser.back()
@@ -110,59 +108,54 @@ def hemispheres(browser):
     return hemisphere_image_urls
 
 
-def twitter_weather(browser):
+def weather_twitter(browser):
     url = "https://twitter.com/marswxreport?lang=en"
     browser.visit(url)
 
-    # Pause for 5 seconds to let the Twitter page load before extracting the html
+    # Pause
     time.sleep(5)
 
     html = browser.html
     weather_soup = BeautifulSoup(html, "html.parser")
 
-    # First, find a tweet with the data-name `Mars Weather`
-    tweet_attrs = {"class": "tweet", "data-name": "Mars Weather"}
-    mars_weather_tweet = weather_soup.find("div", attrs=tweet_attrs)
+    # find a tweet with 'Mars weather"
+    tweet_attributes = {"class": "tweet", "data-name": "Mars Weather"}
+    mars_weather_tweet = weather_soup.find("div", attrs=tweet_attributes)
 
-    # Next, search within the tweet for the p tag or span tag containing the tweet text
-    # As Twitter is frequently making changes the try/except will identify the tweet
-    # text using a regular expression pattern that includes the string 'sol' if there
-    # is no p tag with a class of 'tweet-text'
     try:
-        mars_weather = mars_weather_tweet.find("p", "tweet-text").get_text()
+        weather_on_mars = mars_weather_tweet.find("p", "tweet-text").get_text()
 
     except AttributeError:
 
         pattern = re.compile(r'sol')
-        mars_weather = weather_soup.find('span', text=pattern).text
+        weather_on_mars = weather_soup.find('span', text=pattern).text
 
-    return mars_weather
+    return weather_on_mars
 
 
-def scrape_hemisphere(html_text):
-    # Soupify the html text
-    hemi_soup = BeautifulSoup(html_text, "html.parser")
+def hemisphere_scraping(html_text):
+    # Soupify
+    hemisphere_soup = BeautifulSoup(html_text, "html.parser")
 
-    # Try to get href and text except if error.
     try:
-        title_elem = hemi_soup.find("h2", class_="title").get_text()
-        sample_elem = hemi_soup.find("a", text="Sample").get("href")
+        title_element = hemisphere_soup.find("h2", class_="title").get_text()
+        sample_element = hemisphere_soup.find("a", text="Sample").get("href")
 
     except AttributeError:
 
-        # Image error returns None for better front-end handling
-        title_elem = None
-        sample_elem = None
+        # better front-end handling
+        title_element = None
+        sample_element = None
 
     hemisphere = {
-        "title": title_elem,
-        "img_url": sample_elem
+        "title": title_element,
+        "img_url": sample_element
     }
 
     return hemisphere
 
 
-def mars_facts():
+def facts_about_mars():
     try:
         df = pd.read_html("http://space-facts.com/mars/")[0]
     except BaseException:
